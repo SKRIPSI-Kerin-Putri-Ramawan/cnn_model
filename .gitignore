@@ -1,0 +1,18 @@
+# Model files (Too large for GitHub)
+*.keras
+*.h5
+
+# Dataset
+Pepper_Dataset/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+
+# Data & Temp
+temp_uploads/
+.ipynb_checkpoints/
+.vscode/
+.idea/
