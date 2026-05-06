@@ -18,8 +18,14 @@ def train_pepper_model(epochs=30):
     # 2. Create Model & Move to Device
     model = create_model(num_classes=4).to(device)
     
-    # 3. Define Loss & Optimizer
-    criterion = nn.CrossEntropyLoss()
+    # 3. Define Loss & Optimizer dengan Class Weights
+    # Bobot dihitung berdasarkan: max_samples / samples_per_class
+    # Bacterial Spot (0): 1478/1114 ≈ 1.33
+    # Cerespora (1): 1478/226 ≈ 6.54
+    # Healthy (2): 1478/1478 = 1.0
+    # Leaf_Curl (3): 1478/335 ≈ 4.41
+    weights = torch.tensor([1.33, 6.54, 1.0, 4.41], dtype=torch.float).to(device)
+    criterion = nn.CrossEntropyLoss(weight=weights)
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
     
     best_val_acc = 0.0
