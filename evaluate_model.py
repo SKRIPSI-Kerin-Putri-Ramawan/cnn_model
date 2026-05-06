@@ -1,52 +1,58 @@
-import tensorflow as tf
+import torch
+import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 from src.data_preparation import prepare_data
+from src.model_architecture import create_model
+from sklearn.metrics import confusion_matrix, classification_report
+import seaborn as sns
 
-def evaluate_and_visualize(model_path='models/best_pepper_model.keras'):
+def evaluate_and_visualize(model_path='models/best_pepper_model.pth'):
+    # 0. Set Device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Menggunakan perangkat: {device}")
+
+    # 1. Load Data
+    _, val_loader = prepare_data()
+    if val_loader is None:
+        return
+
+    # 2. Load Model
     print(f"Memuat model dari {model_path}...")
-    model = tf.keras.models.load_model(model_path)
+    model = create_model(num_classes=4)
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
+    model.eval()
     
-    # 1. Load Validation Data
-    _, val_gen = prepare_data()
-    
-    # 2. Evaluate
+    # 3. Evaluate
     print("\nMengevaluasi model pada data validasi...")
-    loss, acc = model.evaluate(val_gen)
-    print(f"Validation Accuracy: {acc*100:.2f}%")
-    print(f"Validation Loss: {loss:.4f}")
-
-    # Catatan: Visualisasi History memerlukan objek 'history' dari model.fit()
-    # Jika kita memuat model dari file, kita tidak memiliki history kecuali kita menyimpannya secara terpisah.
-    # Namun, kita bisa mensimulasikan hasil akhir atau menyarankan pengguna melihat log training.
+    all_preds = []
+    all_labels = []
     
-def plot_history(history):
-    """
-    Fungsi ini digunakan jika dipanggil langsung setelah model.fit()
-    """
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    epochs_range = range(len(acc))
+    with torch.no_grad():
+        for images, labels in val_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
 
-    plt.figure(figsize=(12, 5))
-    
-    # Plot Accuracy
-    plt.subplot(1, 2, 1)
-    plt.plot(epochs_range, acc, label='Training Accuracy')
-    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-    plt.title('Training and Validation Accuracy')
-    plt.legend()
+    # 4. Metrics
+    class_names = ['Bacterial Spot', 'Cerespora', 'Healthy', 'Leaf_Curl']
+    print("\nClassification Report:")
+    print(classification_report(all_labels, all_preds, target_names=class_names))
 
-    # Plot Loss
-    plt.subplot(1, 2, 2)
-    plt.plot(epochs_range, loss, label='Training Loss')
-    plt.plot(epochs_range, val_loss, label='Validation Loss')
-    plt.title('Training and Validation Loss')
-    plt.legend()
-
+    # 5. Confusion Matrix Visualization
+    cm = confusion_matrix(all_labels, all_preds)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel('Prediksi')
+    plt.ylabel('Kenyataan (True)')
+    plt.title('Confusion Matrix - Pepper Disease Detection')
     plt.show()
 
 if __name__ == "__main__":
+    # Pastikan model .pth ada sebelum evaluasi
     evaluate_and_visualize()
