@@ -12,7 +12,7 @@ CORS(app)
 
 # Konfigurasi
 MODEL_PATH = 'models/best_pepper_model.pth'
-CLASS_NAMES = ['Cerespora', 'Leaf_Curl', 'Bacterial Spot', 'Healthy']
+CLASS_NAMES = ['Bacterial Spot', 'Cerespora', 'Healthy', 'Leaf_Curl']
 UPLOAD_FOLDER = 'uploads'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
