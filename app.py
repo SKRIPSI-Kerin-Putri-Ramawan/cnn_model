@@ -16,6 +16,45 @@ CLASS_NAMES = ['Bacterial Spot', 'Cerespora', 'Healthy', 'Leaf_Curl']
 UPLOAD_FOLDER = 'uploads'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+CLASS_METADATA = {
+    'Bacterial Spot': {
+        'title': 'Bercak Bakteri',
+        'description': 'Analisis neural mendeteksi lesi nekrotik basah dengan halo klorotik pada kutikula daun, sangat konsisten dengan isolat Xanthomonas campestris.',
+        'treatments': [
+            {'title': "Karantina Spesimen", 'desc': "Pisahkan tanaman yang terinfeksi untuk mencegah penyebaran lateral."},
+            {'title': "Bakterisida Tembaga", 'desc': "Semprotkan pada seluruh permukaan daun setiap 10 hari."},
+            {'title': "Sterilisasi Alat", 'desc': "Bersihkan gunting pangkas dengan alkohol 70% setelah penggunaan."}
+        ]
+    },
+    'Cerespora': {
+        'title': 'Bercak Daun Cercospora',
+        'description': 'Terdeteksi bintik-bintik kecil berbentuk bulat dengan pusat berwarna abu-abu, ciri khas infeksi jamur Cercospora capsici.',
+        'treatments': [
+            {'title': "Kurangi Kelembapan", 'desc': "Pastikan jarak tanam cukup agar sirkulasi udara baik."},
+            {'title': "Fungisida", 'desc': "Gunakan fungisida berbahan aktif mankozeb atau klorotalonil."},
+            {'title': "Sanitasi Lahan", 'desc': "Bersihkan sisa-sisa tanaman yang terinfeksi dari area penanaman."}
+        ]
+    },
+    'Healthy': {
+        'title': 'Sehat',
+        'description': 'Jaringan daun tampak sehat tanpa adanya tanda-tanda patogen atau defisiensi nutrisi yang signifikan.',
+        'treatments': [
+            {'title': "Pemeliharaan Rutin", 'desc': "Lanjutkan penyiraman dan pemupukan terjadwal."},
+            {'title': "Pemantauan Berkala", 'desc': "Lakukan inspeksi visual setiap minggu untuk deteksi dini."},
+            {'title': "Nutrisi Optimal", 'desc': "Pastikan tanaman mendapatkan asupan N-P-K yang seimbang."}
+        ]
+    },
+    'Leaf_Curl': {
+        'title': 'Daun Keriting',
+        'description': 'Daun menunjukkan gejala menggulung dan mengecil, kemungkinan disebabkan oleh infeksi virus (Gemini virus) atau serangan kutu daun.',
+        'treatments': [
+            {'title': "Pengendalian Vektor", 'desc': "Kendalikan kutu kebul atau trips yang menjadi pembawa virus."},
+            {'title': "Pencabutan Tanaman", 'desc': "Tanaman yang terinfeksi virus parah sebaiknya dicabut dan dimusnahkan."},
+            {'title': "Nutrisi Tambahan", 'desc': "Berikan pupuk daun untuk membantu pemulihan vigor tanaman."}
+        ]
+    }
+}
+
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -65,10 +104,18 @@ def predict():
             probs = torch.nn.functional.softmax(outputs, dim=1)
             conf, pred = torch.max(probs, 1)
 
+        class_name = CLASS_NAMES[pred.item()]
+        metadata = CLASS_METADATA.get(class_name, {
+            'title': class_name,
+            'description': 'Hasil klasifikasi tidak dikenal.',
+            'treatments': []
+        })
+
         result = {
-            'class': CLASS_NAMES[pred.item()],
+            'class': class_name,
             'confidence': float(conf.item()),
-            'status': 'success'
+            'status': 'success',
+            **metadata
         }
         
     except Exception as e:
