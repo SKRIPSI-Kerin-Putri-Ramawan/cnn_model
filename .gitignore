@@ -31,7 +31,7 @@ checkpoint
 .ckpt.*
 
 # Dataset & Data
-data/
+# data/
 Pepper_Dataset/
 uploads/
 temp_uploads/
