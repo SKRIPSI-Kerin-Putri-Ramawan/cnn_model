@@ -1,45 +1,45 @@
-import tensorflow as tf
-import numpy as np
-from tensorflow.keras.preprocessing import image
+import torch
+from torchvision import transforms
+from PIL import Image
+from src.model_architecture import create_model
 import os
 
-# Konfigurasi
-MODEL_PATH = 'best_pepper_model.keras'
-CLASS_NAMES = ['Cerespora', 'Leaf_Curl', 'Bacterial Spot', 'Healthy'] # Sesuaikan dengan urutan folder
-
-def predict_disease(img_path):
-    if not os.path.exists(img_path):
-        print(f"Error: File {img_path} tidak ditemukan.")
-        return
-
-    # 1. Load Model
-    print(f"Memuat model {MODEL_PATH}...")
-    model = tf.keras.models.load_model(MODEL_PATH)
-
-    # 2. Preprocess Image
-    print(f"Memproses gambar {img_path}...")
-    img = image.load_img(img_path, target_size=(224, 224))
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0) # Batch dimension
-    img_array /= 255.0 # Normalisasi
-
-    # 3. Predict
-    predictions = model.predict(img_array)
-    score = tf.nn.softmax(predictions[0])
+def predict_disease(image_path):
+    # 1. Device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    predicted_class = CLASS_NAMES[np.argmax(predictions)]
-    confidence = 100 * np.max(predictions)
-
-    print("\n--- HASIL PREDIKSI ---")
-    print(f"Penyakit Terdeteksi: {predicted_class}")
-    print(f"Tingkat Kepercayaan: {confidence:.2f}%")
-    print("----------------------")
+    # 2. Load Model
+    model = create_model(num_classes=4)
+    model.load_state_dict(torch.load('models/best_pepper_model.pth', map_location=device))
+    model.to(device)
+    model.eval()
+    
+    # 3. Preprocess Image
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    
+    image = Image.open(image_path).convert('RGB')
+    image = transform(image).unsqueeze(0).to(device)
+    
+    # 4. Inference
+    with torch.no_grad():
+        outputs = model(image)
+        probabilities = torch.nn.functional.softmax(outputs, dim=1)
+        confidence, predicted = torch.max(probabilities, 1)
+    
+    # 5. Output
+    class_names = ['Cerespora', 'Leaf_Curl', 'Bacterial Spot', 'Healthy']
+    result = class_names[predicted.item()]
+    
+    return result, confidence.item()
 
 if __name__ == "__main__":
-    # Masukkan path gambar di sini
-    # Contoh: py predict.py dataset_test/test_image.jpg
-    import sys
-    if len(sys.argv) > 1:
-        predict_disease(sys.argv[1])
+    test_img = 'data/Pepper_Dataset/Healthy/healthy_1.jpg' # Contoh path
+    if os.path.exists(test_img):
+        label, conf = predict_disease(test_img)
+        print(f"Hasil Prediksi: {label} (Confidence: {conf*100:.2f}%)")
     else:
-        print("Gunakan: python predict.py <path_gambar>")
+        print("File gambar contoh tidak ditemukan.")

@@ -1,9 +1,9 @@
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
-from data_preparation import prepare_data
+from src.data_preparation import prepare_data
 
-def evaluate_and_visualize(model_path='best_pepper_model.keras'):
+def evaluate_and_visualize(model_path='models/best_pepper_model.keras'):
     print(f"Memuat model dari {model_path}...")
     model = tf.keras.models.load_model(model_path)
     
