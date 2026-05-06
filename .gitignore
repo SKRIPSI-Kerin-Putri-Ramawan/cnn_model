@@ -23,7 +23,7 @@ var/
 *.egg
 
 # TensorFlow & Models
-models/
+# models/
 *.keras
 *.h5
 *.tflite
